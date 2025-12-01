@@ -389,8 +389,4 @@ MIT
 
 **Developed by:** [Mr. Kanok Santhong](https://kanoks.me/)  
 **Role:** Senior Full-Stack Developer & IT Consultant  
-**Website:** https://kanoks.me/
-
-## Support
-
-For issues and questions, please refer to the [project documentation](.github/) or contact the development team.
+**Portfolio:** https://kanoks.me/
