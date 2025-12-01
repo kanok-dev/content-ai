@@ -1,0 +1,8 @@
+export { Header } from './Header'
+export { Hero } from './Hero'
+export { FeaturesGrid } from './FeaturesGrid'
+export { HowItWorks } from './HowItWorks'
+export { PricingTable } from './PricingTable'
+export { FAQ } from './FAQ'
+export { CTA } from './CTA'
+export { Footer } from './Footer'

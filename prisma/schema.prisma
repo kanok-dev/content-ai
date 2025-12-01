@@ -1,0 +1,322 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTH MODELS (Extend Supastarter base)
+// ============================================
+
+model User {
+  id                    String              @id @default(cuid())
+  email                 String              @unique
+  emailVerified         DateTime?
+  name                  String?
+  image                 String?
+  password              String?
+  role                  String              @default("user") // user, admin
+
+  // Subscription fields
+  subscriptionStatus    String?             // active, canceled, past_due, etc.
+  subscriptionId        String?             @unique
+  subscriptionPriceId   String?
+  subscriptionCurrentPeriodEnd DateTime?
+  stripeCustomerId      String?             @unique
+
+  // Relations
+  credit                Credit?
+  creditTransactions    CreditTransaction[]
+  aiGenerations         AIGeneration[]
+  accounts              Account[]
+  sessions              Session[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([email])
+  @@index([stripeCustomerId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// CREDIT SYSTEM MODELS
+// ============================================
+
+model Credit {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance       Int      @default(0)
+  lifetimeEarned Int     @default(0)  // Total credits ever earned
+  lifetimeSpent  Int     @default(0)  // Total credits ever spent
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum TransactionType {
+  PURCHASE        // User purchased credits
+  GRANT           // Admin granted credits
+  DEDUCTION       // Used credits for AI generation
+  REFUND          // Refunded credits
+  BONUS           // Promotional bonus
+  SUBSCRIPTION    // Monthly subscription credits
+}
+
+model CreditTransaction {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Int             // Positive for grants, negative for deductions
+  type          TransactionType
+  description   String
+  balanceBefore Int
+  balanceAfter  Int
+  metadata      Json?           // Additional data (tool used, generation ID, order ID, etc.)
+  createdAt     DateTime        @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================
+// AI TOOLS & GENERATIONS
+// ============================================
+
+enum GenerationStatus {
+  PENDING       // Queued for processing
+  PROCESSING    // Currently generating
+  COMPLETED     // Successfully completed
+  FAILED        // Failed with error
+}
+
+model AIGeneration {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolId        String?
+  toolName      String
+  tool          Tool?             @relation(fields: [toolId], references: [id], onDelete: SetNull)
+
+  // Input/Output
+  input         Json              // User's input parameters
+  output        String            @db.Text
+
+  // Credits & Usage
+  creditsUsed   Int
+  tokensUsed    Int?
+
+  // AI Model Info
+  model         String            // e.g., "gpt-4", "claude-3-sonnet"
+  temperature   Float?
+  maxTokens     Int?
+
+  // Status & Performance
+  status        GenerationStatus
+  error         String?           @db.Text
+  duration      Int?              // milliseconds
+
+  // Metadata
+  isFavorite    Boolean           @default(false)
+  isArchived    Boolean           @default(false)
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([toolId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Tool {
+  id              String         @id @default(cuid())
+  slug            String         @unique
+  name            String
+  description     String         @db.Text
+  category        String
+  icon            String         // Lucide icon name
+
+  // Pricing
+  creditCost      Int
+
+  // Configuration
+  inputSchema     Json           // Zod schema as JSON for validation
+  promptTemplate  String         @db.Text
+  defaultModel    String         @default("gpt-4")
+  defaultTemp     Float          @default(0.7)
+  defaultMaxTokens Int           @default(2000)
+
+  // Display
+  featured        Boolean        @default(false)
+  enabled         Boolean        @default(true)
+  sortOrder       Int            @default(0)
+
+  // Analytics
+  usageCount      Int            @default(0)
+
+  // Relations
+  generations     AIGeneration[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([category])
+  @@index([featured])
+  @@index([enabled])
+  @@index([slug])
+}
+
+// ============================================
+// PAYMENTS & SUBSCRIPTIONS
+// ============================================
+
+model CreditPackage {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  credits         Int
+  price           Int      // Price in cents
+  stripePriceId   String   @unique
+  featured        Boolean  @default(false)
+  enabled         Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model SubscriptionPlan {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  monthlyCredits  Int
+  price           Int      // Price in cents
+  stripePriceId   String   @unique
+  features        Json     // Array of features
+  featured        Boolean  @default(false)
+  enabled         Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+// ============================================
+// ANALYTICS & TRACKING
+// ============================================
+
+model UsageAnalytics {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime @default(now()) @db.Date
+  toolId          String
+  toolName        String
+  generationsCount Int     @default(0)
+  creditsUsed     Int      @default(0)
+  tokensUsed      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, date, toolId])
+  @@index([userId])
+  @@index([date])
+  @@index([toolId])
+}
+
+model SystemMetrics {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now()) @db.Date
+  totalUsers      Int      @default(0)
+  activeUsers     Int      @default(0)
+  totalGenerations Int     @default(0)
+  totalCreditsUsed Int     @default(0)
+  totalRevenue    Int      @default(0)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([date])
+  @@index([date])
+}
+
+// ============================================
+// ADMIN & NOTIFICATIONS
+// ============================================
+
+model AdminLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  action      String
+  targetType  String?  // User, Tool, Credit, etc.
+  targetId    String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // low_credits, generation_complete, payment_failed, etc.
+  title       String
+  message     String   @db.Text
+  read        Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
