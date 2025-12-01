@@ -2,6 +2,8 @@
 
 A modern SaaS platform for AI-powered content generation, built with Next.js 15, tRPC, Prisma, and the Vercel AI SDK.
 
+🌐 **Live Demo:** [https://content-ai-green-ten.vercel.app](https://content-ai-green-ten.vercel.app)
+
 ## Overview
 
 ContentAI is a comprehensive content generation platform similar to JustDone.ai, offering 130+ AI-powered tools for creating blog posts, social media content, emails, product descriptions, SEO metadata, and more. The platform features a credit-based system, subscription management, and Stripe payment integration.
@@ -384,6 +386,41 @@ curl 'http://localhost:3000/api/trpc/aiTools.getCategories?input=%7B%22json%22%3
 ## License
 
 MIT
+
+## Pages & Navigation
+
+### Live URLs
+
+| Page | URL |
+|------|-----|
+| **Homepage** | [https://content-ai-green-ten.vercel.app](https://content-ai-green-ten.vercel.app) |
+| **Tools Catalog** | [https://content-ai-green-ten.vercel.app/tools](https://content-ai-green-ten.vercel.app/tools) |
+| **About Us** | [https://content-ai-green-ten.vercel.app/about](https://content-ai-green-ten.vercel.app/about) |
+| **Login** | [https://content-ai-green-ten.vercel.app/login](https://content-ai-green-ten.vercel.app/login) |
+| **Sign Up** | [https://content-ai-green-ten.vercel.app/signup](https://content-ai-green-ten.vercel.app/signup) |
+| **Forgot Password** | [https://content-ai-green-ten.vercel.app/forgot-password](https://content-ai-green-ten.vercel.app/forgot-password) |
+| **Dashboard** | [https://content-ai-green-ten.vercel.app/dashboard](https://content-ai-green-ten.vercel.app/dashboard) |
+| **Dashboard - Tools** | [https://content-ai-green-ten.vercel.app/dashboard/tools](https://content-ai-green-ten.vercel.app/dashboard/tools) |
+| **Dashboard - Credits** | [https://content-ai-green-ten.vercel.app/dashboard/credits](https://content-ai-green-ten.vercel.app/dashboard/credits) |
+| **Dashboard - History** | [https://content-ai-green-ten.vercel.app/dashboard/history](https://content-ai-green-ten.vercel.app/dashboard/history) |
+| **Dashboard - Settings** | [https://content-ai-green-ten.vercel.app/dashboard/settings](https://content-ai-green-ten.vercel.app/dashboard/settings) |
+
+### Route Structure
+
+```
+/                           # Homepage (Landing Page)
+/tools                      # Public tools catalog
+/about                      # About us page
+/login                      # User login
+/signup                     # User registration
+/forgot-password            # Password reset
+/dashboard                  # Main dashboard (protected)
+/dashboard/tools            # AI tools list (protected)
+/dashboard/tools/[slug]     # Individual tool interface (protected)
+/dashboard/credits          # Credits & billing (protected)
+/dashboard/history          # Generation history (protected)
+/dashboard/settings         # User settings (protected)
+```
 
 ## Credits
 
